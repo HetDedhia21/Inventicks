@@ -12,9 +12,28 @@ def get_db_connection():
 def index():
     return render_template('index.html')
 
-@app.route('/inventory')
+@app.route('/inventory', methods=['GET', 'POST'])
 def inventory():
-    return "Inventory Page"
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # ADD PRODUCT
+    if request.method == 'POST':
+        name = request.form['name']
+        price = request.form['price']
+        quantity = request.form['quantity']
+
+        cursor.execute(
+            "INSERT INTO products (name, price, quantity) VALUES (?, ?, ?)",
+            (name, price, quantity)
+        )
+        conn.commit()
+
+    # FETCH PRODUCTS
+    products = cursor.execute("SELECT * FROM products").fetchall()
+    conn.close()
+
+    return render_template('inventory.html', products=products)
 
 @app.route('/sales')
 def sales():
