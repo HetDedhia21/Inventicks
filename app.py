@@ -1,7 +1,10 @@
 from flask import Flask, render_template, request, redirect
 import sqlite3
+from flask import flash
 
 app = Flask(__name__)
+
+app.secret_key = "inventicks_secret"
 
 def get_db_connection():
     conn = sqlite3.connect('database.db')
@@ -17,7 +20,6 @@ def inventory():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # ADD PRODUCT
     if request.method == 'POST':
         name = request.form['name']
         price = request.form['price']
@@ -28,8 +30,12 @@ def inventory():
             (name, price, quantity)
         )
         conn.commit()
+        conn.close()
 
-    # FETCH PRODUCTS
+        flash("Product added successfully!")
+
+        return redirect('/inventory')   
+
     products = cursor.execute("SELECT * FROM products").fetchall()
     conn.close()
 
@@ -43,6 +49,8 @@ def delete_product(id):
     cursor.execute("DELETE FROM products WHERE id = ?", (id,))
     conn.commit()
     conn.close()
+    
+    flash("Product deleted successfully!")
 
     return redirect('/inventory')
 
@@ -61,6 +69,8 @@ def edit_product(id):
             SET name = ?, price = ?, quantity = ?
             WHERE id = ?
         """, (name, price, quantity, id))
+
+        flash("Product updated successfully!")
 
         conn.commit()
         conn.close()
