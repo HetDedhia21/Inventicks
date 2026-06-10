@@ -24,6 +24,7 @@
         <th>Name</th>
         <th>Price</th>
         <th>Quantity</th>
+        <th>Actions</th>
     </tr>
 
     {% for product in products %}
@@ -32,6 +33,11 @@
         <td>{{ product['name'] }}</td>
         <td>{{ product['price'] }}</td>
         <td>{{ product['quantity'] }}</td>
+
+         <td>
+            <a href="/edit/{{ product['id'] }}">Edit</a> |
+            <a href="/delete/{{ product['id'] }}">Delete</a>
+        </td>
     </tr>
     {% endfor %}
 
