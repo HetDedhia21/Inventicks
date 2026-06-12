@@ -83,13 +83,13 @@ def edit_product(id):
 
     return render_template('edit_product.html', product=product)
 
-@app.route('/sales')
-def sales():
-    return "Sales Page"
-
 @app.route('/dashboard')
 def dashboard():
-    return "Dashboard Page"
+    return render_template('dashboard.html')
+
+@app.route('/sales')
+def sales():
+    return render_template('sales.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
