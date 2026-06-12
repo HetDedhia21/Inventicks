@@ -2,12 +2,28 @@
 <html>
 <head>
     <title>Inventicks</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-    <h1>Welcome to Inventicks 🚀</h1>
 
-    <a href="/inventory">Inventory</a><br>
-    <a href="/sales">Sales</a><br>
-    <a href="/dashboard">Dashboard</a>
+<body>
+
+<div class="container">
+
+<h1>📦 Welcome to Inventicks</h1>
+
+<p style="text-align:center;">
+    Manage your inventory easily 🚀
+</p>
+
+<br>
+
+<div style="text-align:center;">
+    <a href="/inventory"><button>Inventory</button></a>
+    <a href="/sales"><button>Sales</button></a>
+    <a href="/dashboard"><button>Dashboard</button></a>
+</div>
+
+</div>
+
 </body>
 </html>
