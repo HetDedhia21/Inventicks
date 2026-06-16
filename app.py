@@ -83,10 +83,6 @@ def edit_product(id):
 
     return render_template('edit_product.html', product=product)
 
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html')
-
 @app.route('/sales', methods=['GET', 'POST'])
 def sales():
     conn = sqlite3.connect('database.db')
@@ -146,6 +142,32 @@ def sales_history():
     conn.close()
 
     return render_template('sales_history.html', sales=sales)
+
+@app.route('/dashboard')
+def dashboard():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    # Total products
+    cursor.execute("SELECT COUNT(*) FROM products")
+    total_products = cursor.fetchone()[0]
+
+    # Low stock (example: quantity < 5)
+    cursor.execute("SELECT COUNT(*) FROM products WHERE quantity < 5")
+    low_stock = cursor.fetchone()[0]
+
+    # Total sales revenue
+    cursor.execute("SELECT SUM(total_price) FROM sales")
+    total_sales = cursor.fetchone()[0]
+
+    conn.close()
+
+    return render_template(
+        'dashboard.html',
+        total_products=total_products,
+        low_stock=low_stock,
+        total_sales=total_sales or 0
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
