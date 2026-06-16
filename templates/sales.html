@@ -13,21 +13,36 @@
         <a href="/">Home</a>
         <a href="/inventory">Inventory</a>
         <a href="/sales">Sales</a>
+        <a href="/sales-history">Sales History</a>
         <a href="/dashboard">Dashboard</a>
     </div>
 </div>
 
+{% if message %}
+    <p style="text-align:center; font-weight:bold;">{{ message }}</p>
+{% endif %}
+
 <h1>💰 Sales</h1>
 
-<div class="card">
-    <h3>Record a Sale</h3>
-    <p>Feature coming soon...</p>
-</div>
+<form method="POST">
 
-<div class="card">
-    <h3>Recent Sales</h3>
-    <p>No sales yet</p>
-</div>
+    <label>Select Product:</label>
+    <select name="product_id">
+        {% for product in products %}
+            <option value="{{ product[0] }}">{{ product[1] }}</option>
+        {% endfor %}
+    </select>
+
+    <br><br>
+
+    <label>Quantity:</label>
+    <input type="number" name="quantity" required>
+
+    <br><br>
+
+    <button type="submit">Sell</button>
+
+</form>
 
 </body>
 </html>

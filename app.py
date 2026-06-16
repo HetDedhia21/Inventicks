@@ -87,9 +87,65 @@ def edit_product(id):
 def dashboard():
     return render_template('dashboard.html')
 
-@app.route('/sales')
+@app.route('/sales', methods=['GET', 'POST'])
 def sales():
-    return render_template('sales.html')
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    message = ""
+
+    if request.method == 'POST':
+        product_id = request.form['product_id']
+        quantity_sold = int(request.form['quantity'])
+
+        # Get product details
+        cursor.execute("SELECT name, quantity, price FROM products WHERE id = ?", (product_id,))
+        product = cursor.fetchone()
+
+        name, current_quantity, price = product
+
+        # 🚨 VALIDATION
+        if quantity_sold > current_quantity:
+            message = "❌ Not enough stock!"
+        else:
+            # Update product quantity
+            new_quantity = current_quantity - quantity_sold
+            cursor.execute("UPDATE products SET quantity = ? WHERE id = ?", (new_quantity, product_id))
+
+            # Save sale
+            total_price = quantity_sold * price
+            cursor.execute(
+                "INSERT INTO sales (product_id, quantity_sold, total_price) VALUES (?, ?, ?)",
+                (product_id, quantity_sold, total_price)
+            )
+
+            conn.commit()
+            message = "✅ Sale recorded successfully!"
+
+    # Fetch products
+    cursor.execute("SELECT id, name FROM products")
+    products = cursor.fetchall()
+
+    conn.close()
+
+    return render_template('sales.html', products=products, message=message)
+
+@app.route('/sales-history')
+def sales_history():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT products.name, sales.quantity_sold, sales.total_price, sales.date
+        FROM sales
+        JOIN products ON sales.product_id = products.id
+        ORDER BY sales.date DESC
+    ''')
+
+    sales = cursor.fetchall()
+    conn.close()
+
+    return render_template('sales_history.html', sales=sales)
 
 if __name__ == '__main__':
     app.run(debug=True)
