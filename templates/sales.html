@@ -13,7 +13,6 @@
         <a href="/">Home</a>
         <a href="/inventory">Inventory</a>
         <a href="/sales">Sales</a>
-        <a href="/sales-history">Sales History</a>
         <a href="/dashboard">Dashboard</a>
     </div>
 </div>
@@ -43,6 +42,26 @@
     <button type="submit">Sell</button>
 
 </form>
+
+<h2>📊 Sales History</h2>
+
+<table border="1">
+    <tr>
+        <th>Product</th>
+        <th>Quantity</th>
+        <th>Total Price</th>
+        <th>Date</th>
+    </tr>
+
+    {% for sale in sales %}
+    <tr>
+        <td>{{ sale[0] }}</td>
+        <td>{{ sale[1] }}</td>
+        <td>{{ sale[2] }}</td>
+        <td>{{ sale[3] }}</td>
+    </tr>
+    {% endfor %}
+</table>
 
 </body>
 </html>
