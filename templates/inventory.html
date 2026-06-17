@@ -21,6 +21,24 @@
     
 <h1>Inventory Management 📦</h1>
 
+<!-- SEARCH -->
+<form method="GET" action="/inventory">
+    <input type="text" name="search" placeholder="Search product">
+    <button type="submit">🔍 Search</button>
+</form>
+
+<br>
+
+<!-- FILTERS -->
+<a href="/inventory?filter=low">⚠ Low Stock (<10)</a> |
+<a href="/inventory?filter=out">❌ Out of Stock</a> |
+<a href="/inventory">🔄 Clear</a> |
+<a href="/delete_all" onclick="return confirm('Delete ALL products?')">
+    🧨 Delete All Products
+</a>
+
+<br><br>
+
 {% with messages = get_flashed_messages() %}
   {% if messages %}
     <ul>
@@ -41,6 +59,12 @@
 
 <br><br>
 
+<h3>Upload CSV</h3>
+<form action="/upload_csv" method="POST" enctype="multipart/form-data">
+    <input type="file" name="file" required>
+    <button type="submit">📁 Upload</button>
+</form>
+
 <!-- PRODUCT TABLE -->
 <table border="1">
     <tr>
@@ -52,7 +76,13 @@
     </tr>
 
     {% for product in products %}
-    <tr>
+    <tr class="
+        {% if product['quantity'] == 0 %}
+            out-stock
+        {% elif product['quantity'] < 10 %}
+            low-stock
+        {% endif %}
+    ">
         <td>{{ product['id'] }}</td>
         <td>{{ product['name'] }}</td>
         <td>{{ product['price'] }}</td>
