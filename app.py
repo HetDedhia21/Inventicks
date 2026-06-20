@@ -82,7 +82,10 @@ def edit_product(id):
 
         cursor.execute("""
             UPDATE products
-            SET name = ?, price = ?, quantity = ?
+            SET name = ?, 
+                price = ?, 
+                quantity = ?, 
+                updated_at = datetime('now','localtime')
             WHERE id = ?
         """, (name, price, quantity, id))
 

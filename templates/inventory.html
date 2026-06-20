@@ -72,6 +72,8 @@
         <th>Name</th>
         <th>Price</th>
         <th>Quantity</th>
+        <th>Created</th>
+        <th>Updated</th>
         <th>Actions</th>
     </tr>
 
@@ -87,6 +89,8 @@
         <td>{{ product['name'] }}</td>
         <td>{{ product['price'] }}</td>
         <td>{{ product['quantity'] }}</td>
+        <td>{{ product['created_at'] }}</td>
+        <td>{{ product['updated_at'] }}</td>
 
          <td>
             <a href="/edit/{{ product['id'] }}">✏️ Edit</a> |
