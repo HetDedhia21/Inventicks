@@ -25,6 +25,44 @@
 
 <form method="POST">
 
+    <!-- ✅ NEW: CUSTOMER SELECTION -->
+    <h3>👤 Customer</h3>
+
+    <label>
+        <input type="radio" name="customer_type" value="new" required> New
+    </label>
+
+    <label>
+        <input type="radio" name="customer_type" value="existing"> Existing
+    </label>
+
+    <br><br>
+
+    <!-- ✅ NEW CUSTOMER INPUT -->
+    <div>
+        <label>Name:</label>
+        <input type="text" name="new_name">
+
+        <label>Phone:</label>
+        <input type="text" name="new_phone">
+    </div>
+
+    <br>
+
+    <!-- ✅ EXISTING CUSTOMER DROPDOWN -->
+    <div>
+        <label>Select Customer:</label>
+        <select name="existing_customer">
+            <option value="">-- Select --</option>
+            {% for c in customers %}
+                <option value="{{ c[0] }}">{{ c[1] }} ({{ c[2] }})</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <hr>
+
+    <!-- EXISTING FORM (UNCHANGED) -->
     <label>Select Product:</label>
     <select name="product_id">
         {% for product in products %}
@@ -43,25 +81,81 @@
 
 </form>
 
-<h2>📊 Sales History</h2>
+{% if selected_customer %}
+    <h2>👤 Customer Details</h2>
 
-<table border="1">
-    <tr>
-        <th>Product</th>
-        <th>Quantity</th>
-        <th>Total Price</th>
-        <th>Date</th>
-    </tr>
+    <!-- ✅ FIXED INDEXES -->
+    <p><strong>Name:</strong> {{ selected_customer[1] }}</p>
+    <p><strong>Total Spent:</strong> ₹{{ selected_customer[2] }}</p>
+    <p><strong>Due Amount:</strong> ₹{{ selected_customer[3] }}</p>
 
-    {% for sale in sales %}
-    <tr>
-        <td>{{ sale[0] }}</td>
-        <td>{{ sale[1] }}</td>
-        <td>{{ sale[2] }}</td>
-        <td>{{ sale[3] }}</td>
-    </tr>
-    {% endfor %}
-</table>
+    <h3>🧾 Purchase History</h3>
+
+    <table border="1">
+        <tr>
+            <th>Product</th>
+            <th>Quantity</th>
+            <th>Total Price</th>
+            <th>Date</th>
+        </tr>
+
+        {% for item in customer_history %}
+        <tr>
+            <td>{{ item[0] }}</td>
+            <td>{{ item[1] }}</td>
+            <td>{{ item[2] }}</td>
+            <td>{{ item[3] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endif %}
+
+<script type="application/json" id="customer-data">
+    {{ customers | default('[]') | tojson }}
+</script>
+
+<script>
+    const customerDropdown = document.querySelector('[name="existing_customer"]');
+    const nameInput = document.querySelector('[name="new_name"]');
+    const phoneInput = document.querySelector('[name="new_phone"]');
+
+    // Store customer data from Flask
+    window.customers = JSON.parse(document.getElementById('customer-data').textContent || '[]');
+
+    customerDropdown.addEventListener('change', function () {
+        const selectedId = this.value;
+
+        const customer = window.customers.find(c => c[0] == selectedId);
+
+        if (customer) {
+            nameInput.value = customer[1];
+            phoneInput.value = customer[2];
+        }
+    });
+</script>
+
+<script>
+    const newRadio = document.querySelector('input[value="new"]');
+    const existingRadio = document.querySelector('input[value="existing"]');
+
+    const newFields = document.querySelectorAll('[name="new_name"], [name="new_phone"]');
+    const dropdown = document.querySelector('[name="existing_customer"]');
+
+    function toggleFields() {
+        if (newRadio.checked) {
+            newFields.forEach(f => f.disabled = false);
+            dropdown.disabled = true;
+        } else {
+            newFields.forEach(f => f.disabled = true);
+            dropdown.disabled = false;
+        }
+    }
+
+    newRadio.addEventListener('change', toggleFields);
+    existingRadio.addEventListener('change', toggleFields);
+
+    toggleFields(); // run on load
+</script>
 
 </body>
 </html>
