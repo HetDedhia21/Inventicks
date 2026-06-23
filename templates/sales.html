@@ -1,160 +1,181 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sales - Inventicks</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+    <title>POS Billing</title>
 
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
 <body>
 
-<div class="navbar">
-    <h2>Inventicks</h2>
-    <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/inventory">Inventory</a>
-        <a href="/sales">Sales</a>
-        <a href="/dashboard">Dashboard</a>
-    </div>
-</div>
+<h2>Billing System</h2>
 
-{% if message %}
-    <p style="text-align:center; font-weight:bold;">{{ message }}</p>
-{% endif %}
+<!-- ✅ CUSTOMER SECTION -->
+<h3>Customer</h3>
 
-<h1>💰 Sales</h1>
+<input type="text" id="phone" placeholder="Phone Number">
+<input type="text" id="name" placeholder="Customer Name">
+<p id="customer-info"></p>
 
-<form method="POST">
+<!-- ✅ PRODUCTS SECTION -->
+<h3>Add Product</h3>
 
-    <!-- ✅ NEW: CUSTOMER SELECTION -->
-    <h3>👤 Customer</h3>
+<select id="product">
+    {% for product in products %}
+    <option value="{{ product[0] }}" data-price="{{ product[2] }}">
+        {{ product[1] }} - ₹{{ product[2] }}
+    </option>
+    {% endfor %}
+</select>
 
-    <label>
-        <input type="radio" name="customer_type" value="new" required> New
-    </label>
+<input type="number" id="qty" placeholder="Quantity" value="1">
 
-    <label>
-        <input type="radio" name="customer_type" value="existing"> Existing
-    </label>
+<button onclick="addToCart()">Add to Cart</button>
 
-    <br><br>
+<!-- ✅ CART DISPLAY -->
+<h3>Cart</h3>
+<div id="cart"></div>
 
-    <!-- ✅ NEW CUSTOMER INPUT -->
-    <div>
-        <label>Name:</label>
-        <input type="text" name="new_name">
+<p><strong>Total: ₹<span id="total">0</span></strong></p>
 
-        <label>Phone:</label>
-        <input type="text" name="new_phone">
-    </div>
+<!-- ✅ PAYMENT SECTION -->
+<h3>Payment</h3>
 
-    <br>
+<input type="number" id="discount" placeholder="Discount" value="0">
+<input type="number" id="paid" placeholder="Paid Amount" value="0">
 
-    <!-- ✅ EXISTING CUSTOMER DROPDOWN -->
-    <div>
-        <label>Select Customer:</label>
-        <select name="existing_customer">
-            <option value="">-- Select --</option>
-            {% for c in customers %}
-                <option value="{{ c[0] }}">{{ c[1] }} ({{ c[2] }})</option>
-            {% endfor %}
-        </select>
-    </div>
+<button onclick="submitSale()">Sell</button>
 
-    <hr>
-
-    <!-- EXISTING FORM (UNCHANGED) -->
-    <label>Select Product:</label>
-    <select name="product_id">
-        {% for product in products %}
-            <option value="{{ product[0] }}">{{ product[1] }}</option>
-        {% endfor %}
-    </select>
-
-    <br><br>
-
-    <label>Quantity:</label>
-    <input type="number" name="quantity" required>
-
-    <br><br>
-
-    <button type="submit">Sell</button>
-
-</form>
-
-{% if selected_customer %}
-    <h2>👤 Customer Details</h2>
-
-    <!-- ✅ FIXED INDEXES -->
-    <p><strong>Name:</strong> {{ selected_customer[1] }}</p>
-    <p><strong>Total Spent:</strong> ₹{{ selected_customer[2] }}</p>
-    <p><strong>Due Amount:</strong> ₹{{ selected_customer[3] }}</p>
-
-    <h3>🧾 Purchase History</h3>
-
-    <table border="1">
-        <tr>
-            <th>Product</th>
-            <th>Quantity</th>
-            <th>Total Price</th>
-            <th>Date</th>
-        </tr>
-
-        {% for item in customer_history %}
-        <tr>
-            <td>{{ item[0] }}</td>
-            <td>{{ item[1] }}</td>
-            <td>{{ item[2] }}</td>
-            <td>{{ item[3] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-{% endif %}
-
+<!-- ✅ CUSTOMER DATA FROM BACKEND -->
 <script type="application/json" id="customer-data">
-    {{ customers | default('[]') | tojson }}
+    {{ customers | tojson | default('[]') }}
 </script>
 
 <script>
-    const customerDropdown = document.querySelector('[name="existing_customer"]');
-    const nameInput = document.querySelector('[name="new_name"]');
-    const phoneInput = document.querySelector('[name="new_phone"]');
+/* =========================
+   LOAD CUSTOMER DATA
+========================= */
+window.customers = JSON.parse(
+    document.getElementById('customer-data').textContent || '[]'
+);
 
-    // Store customer data from Flask
-    window.customers = JSON.parse(document.getElementById('customer-data').textContent || '[]');
+/* =========================
+   CUSTOMER AUTO DETECT
+========================= */
+document.getElementById('phone').addEventListener('input', function () {
+    const phone = this.value;
 
-    customerDropdown.addEventListener('change', function () {
-        const selectedId = this.value;
+    const customer = window.customers.find(c => c.phone === phone);
 
-        const customer = window.customers.find(c => c[0] == selectedId);
+    if (customer) {
+        document.getElementById('name').value = customer.name;
+        document.getElementById('customer-info').innerText =
+            `Existing Customer | Due: ₹${customer.due_amount}`;
+    } else {
+        document.getElementById('name').value = '';
+        document.getElementById('customer-info').innerText = 'New Customer';
+    }
+});
 
-        if (customer) {
-            nameInput.value = customer[1];
-            phoneInput.value = customer[2];
-        }
-    });
-</script>
+/* =========================
+   CART SYSTEM
+========================= */
+let cart = [];
 
-<script>
-    const newRadio = document.querySelector('input[value="new"]');
-    const existingRadio = document.querySelector('input[value="existing"]');
+function addToCart() {
+    const productSelect = document.getElementById('product');
+    const productId = productSelect.value;
+    const productName = productSelect.options[productSelect.selectedIndex].text;
+    const price = parseFloat(productSelect.options[productSelect.selectedIndex].dataset.price);
+    const qty = parseInt(document.getElementById('qty').value);
 
-    const newFields = document.querySelectorAll('[name="new_name"], [name="new_phone"]');
-    const dropdown = document.querySelector('[name="existing_customer"]');
-
-    function toggleFields() {
-        if (newRadio.checked) {
-            newFields.forEach(f => f.disabled = false);
-            dropdown.disabled = true;
-        } else {
-            newFields.forEach(f => f.disabled = true);
-            dropdown.disabled = false;
-        }
+    if (!qty || qty <= 0) {
+        alert("Enter valid quantity");
+        return;
     }
 
-    newRadio.addEventListener('change', toggleFields);
-    existingRadio.addEventListener('change', toggleFields);
+    const existing = cart.find(p => p.id == productId);
 
-    toggleFields(); // run on load
+    if (existing) {
+        existing.quantity += qty;
+    } else {
+        cart.push({
+            id: productId,
+            name: productName,
+            price: price,
+            quantity: qty
+        });
+    }
+
+    renderCart();
+}
+
+function renderCart() {
+    const cartDiv = document.getElementById('cart');
+    cartDiv.innerHTML = '';
+
+    let total = 0;
+
+    cart.forEach((item, index) => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+
+        cartDiv.innerHTML += `
+            <p>
+                ${item.name} x ${item.quantity} = ₹${itemTotal}
+                <button onclick="removeItem(${index})">Remove</button>
+            </p>
+        `;
+    });
+
+    document.getElementById('total').innerText = total;
+}
+
+function removeItem(index) {
+    cart.splice(index, 1);
+    renderCart();
+}
+
+/* =========================
+   SUBMIT SALE
+========================= */
+function submitSale() {
+    const phone = document.getElementById('phone').value;
+    const name = document.getElementById('name').value;
+    const discount = parseFloat(document.getElementById('discount').value) || 0;
+    const paid = parseFloat(document.getElementById('paid').value) || 0;
+
+    if (!phone) {
+        alert("Phone number required");
+        return;
+    }
+
+    if (cart.length === 0) {
+        alert("Cart is empty");
+        return;
+    }
+
+    fetch('/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            phone: phone,
+            name: name,
+            cart: cart,
+            discount: discount,
+            paid_amount: paid
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert("Sale Completed ✅");
+        location.reload();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Error processing sale");
+    });
+}
 </script>
 
 </body>

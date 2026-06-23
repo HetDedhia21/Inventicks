@@ -19,13 +19,24 @@ CREATE TABLE IF NOT EXISTS products (
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS sales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_id INTEGER,
-    quantity_sold INTEGER,
-    total_price REAL,
     customer_id INTEGER,
-    payment_status TEXT DEFAULT 'paid',
-    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(product_id) REFERENCES products(id)
+    total_amount REAL,
+    discount REAL,
+    final_amount REAL,
+    paid_amount REAL,
+    due_added REAL,
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+''')
+
+#Sale Items Table
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS sale_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sale_id INTEGER,
+    product_id INTEGER,
+    quantity INTEGER,
+    price REAL
 )
 ''')
 

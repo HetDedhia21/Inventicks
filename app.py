@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for    
+from flask import Flask, render_template, request, redirect, url_for, jsonify  
 import sqlite3
 from flask import flash
 import csv
@@ -185,142 +185,83 @@ def delete_all():
 
 @app.route('/sales', methods=['GET', 'POST'])
 def sales():
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
 
-    message = ""
+    if request.method == 'GET':
+        # show page
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
 
-    # ✅ Always fetch products & customers (IMPORTANT FIX)
-    cursor.execute("SELECT * FROM products")
-    products = cursor.fetchall()
+        cursor.execute("SELECT * FROM products")
+        products = cursor.fetchall()
 
-    cursor.execute("SELECT id, name, phone FROM customers")
-    customers = cursor.fetchall()
+        cursor.execute("SELECT * FROM customers")
+        customers = cursor.fetchall()
 
-    # ✅ Fetch sales history
-    cursor.execute('''
-        SELECT sales.id, products.name, sales.quantity_sold, sales.total_price, sales.date
-        FROM sales
-        JOIN products ON sales.product_id = products.id
-        ORDER BY sales.date DESC
-    ''')
-    sales = cursor.fetchall()
+        conn.close()
 
-    selected_customer = None
-    customer_history = []
-    customer_id = None
+        return render_template('sales.html', products=products, customers=customers)
 
-    if request.method == 'POST':
+    elif request.method == 'POST':
+        data = request.get_json()
 
-        customer_type = request.form.get('customer_type')
+        phone = data.get('phone')
+        name = data.get('name')
+        cart = data.get('cart')
+        discount = float(data.get('discount', 0))
+        paid_amount = float(data.get('paid_amount', 0))
 
-        # ✅ HANDLE NEW CUSTOMER
-        if customer_type == 'new':
-            name = request.form.get('new_name')
-            phone = request.form.get('new_phone')
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
 
-            if not name or not phone:
-                message = "Enter customer name & phone"
-            else:
-                cursor.execute(
-                    "INSERT INTO customers (name, phone, total_spent, due_amount) VALUES (?, ?, 0, 0)",
-                    (name, phone)
-                )
-                conn.commit()
-                customer_id = cursor.lastrowid
+        # ✅ check customer
+        cursor.execute("SELECT id FROM customers WHERE phone = ?", (phone,))
+        customer = cursor.fetchone()
 
-        # ✅ HANDLE EXISTING CUSTOMER
-        elif customer_type == 'existing':
-            customer_id = request.form.get('existing_customer')
+        if customer:
+            customer_id = customer[0]
+        else:
+            cursor.execute(
+                "INSERT INTO customers (name, phone, due_amount) VALUES (?, ?, 0)",
+                (name, phone)
+            )
+            customer_id = cursor.lastrowid
 
-            if not customer_id:
-                message = "Select a customer"
+        # ✅ total
+        total = sum(item['price'] * item['quantity'] for item in cart)
+        final_amount = total - discount
+        due = final_amount - paid_amount
 
-            else:
-                # Get customer details
-                cursor.execute(
-                    "SELECT id, name, total_spent, due_amount FROM customers WHERE id=?",
-                    (customer_id,)
-                )
-                selected_customer = cursor.fetchone()
+        # ✅ insert sale
+        cursor.execute("""
+            INSERT INTO sales (customer_id, total_amount, discount, final_amount, paid_amount, due_added)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (customer_id, total, discount, final_amount, paid_amount, due))
 
-                # Get customer history
-                cursor.execute('''
-                    SELECT products.name, sales.quantity_sold, sales.total_price, sales.date
-                    FROM sales
-                    JOIN products ON sales.product_id = products.id
-                    WHERE sales.customer_id = ?
-                    ORDER BY sales.date DESC
-                ''', (customer_id,))
-                customer_history = cursor.fetchall()
+        sale_id = cursor.lastrowid
 
-        # ✅ HANDLE SALE SUBMISSION
-        product_id = request.form.get('product_id')
-        quantity = request.form.get('quantity')
+        # ✅ items + stock update
+        for item in cart:
+            cursor.execute("""
+                INSERT INTO sale_items (sale_id, product_id, quantity, price)
+                VALUES (?, ?, ?, ?)
+            """, (sale_id, item['id'], item['quantity'], item['price']))
 
-        if product_id and quantity:
-            try:
-                quantity = int(quantity)
+            cursor.execute("""
+                UPDATE products SET stock = stock - ?
+                WHERE id = ?
+            """, (item['quantity'], item['id']))
 
-                if quantity <= 0:
-                    message = "Quantity must be positive"
+        # ✅ update due
+        if due > 0:
+            cursor.execute("""
+                UPDATE customers SET due_amount = due_amount + ?
+                WHERE id = ?
+            """, (due, customer_id))
 
-                else:
-                    # Get product details
-                    cursor.execute(
-                        "SELECT name, price, quantity FROM products WHERE id=?",
-                        (product_id,)
-                    )
-                    product = cursor.fetchone()
+        conn.commit()
+        conn.close()
 
-                    if not product:
-                        message = "Product not found"
-
-                    elif product[2] < quantity:
-                        message = "Not enough stock"
-
-                    else:
-                        total_price = product[1] * quantity
-                        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-                        # Insert sale
-                        cursor.execute('''
-                            INSERT INTO sales (product_id, quantity_sold, total_price, date, customer_id)
-                            VALUES (?, ?, ?, ?, ?)
-                        ''', (product_id, quantity, total_price, date, customer_id))
-
-                        # Update stock
-                        cursor.execute(
-                            "UPDATE products SET quantity = quantity - ? WHERE id=?",
-                            (quantity, product_id)
-                        )
-
-                        # Update customer spending
-                        cursor.execute(
-                            "UPDATE customers SET total_spent = total_spent + ? WHERE id=?",
-                            (total_price, customer_id)
-                        )
-
-                        conn.commit()
-
-                        message = "Sale successful!"
-
-                        return redirect(url_for('sales'))
-
-            except ValueError:
-                message = "Invalid quantity"
-
-    conn.close()
-
-    return render_template(
-        'sales.html',
-        products=products,
-        customers=customers,  # ✅ THIS FIXES YOUR ERROR
-        sales=sales,
-        message=message,
-        selected_customer=selected_customer,
-        customer_history=customer_history
-    )
+        return jsonify({"message": "Sale completed"})
 
 @app.route('/dashboard')
 def dashboard():
