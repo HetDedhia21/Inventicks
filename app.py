@@ -20,42 +20,42 @@ def index():
 
 @app.route('/inventory', methods=['GET', 'POST'])
 def inventory():
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
 
-    # ADD PRODUCT
-    if request.method == 'POST' and 'name' in request.form:
-        name = request.form['name']
-        price = request.form['price']
-        quantity = request.form['quantity']
+        # ADD PRODUCT
+        if request.method == 'POST' and 'name' in request.form:
+            name = request.form['name']
+            price = request.form['price']
+            quantity = request.form['quantity']
 
-        cursor.execute(
-            "INSERT INTO products (name, price, quantity) VALUES (?, ?, ?)",
-            (name, price, quantity)
-        )
-        conn.commit()
-        flash("Product added successfully!")
-        return redirect('/inventory')
+            cursor.execute(
+                "INSERT INTO products (name, price, quantity) VALUES (?, ?, ?)",
+                (name, price, quantity)
+            )
+            conn.commit()
 
-    # SEARCH + FILTER
-    search = request.args.get('search')
-    filter_type = request.args.get('filter')
+            flash("Product added successfully!")
+            return redirect('/inventory')   # ✅ safe now
 
-    query = "SELECT * FROM products WHERE 1=1"
-    params = []
+        # SEARCH + FILTER
+        search = request.args.get('search')
+        filter_type = request.args.get('filter')
 
-    if search:
-        query += " AND name LIKE ?"
-        params.append('%' + search + '%')
+        query = "SELECT * FROM products WHERE 1=1"
+        params = []
 
-    if filter_type == 'low':
-        query += " AND quantity < 10"
-    elif filter_type == 'out':
-        query += " AND quantity = 0"
+        if search:
+            query += " AND name LIKE ?"
+            params.append('%' + search + '%')
 
-    products = cursor.execute(query, params).fetchall()
+        if filter_type == 'low':
+            query += " AND quantity < 10"
+        elif filter_type == 'out':
+            query += " AND quantity = 0"
 
-    conn.close()
+        products = cursor.execute(query, params).fetchall()
+
     return render_template('inventory.html', products=products)
 
 @app.route('/delete/<int:id>')
@@ -247,7 +247,7 @@ def sales():
             """, (sale_id, item['id'], item['quantity'], item['price']))
 
             cursor.execute("""
-                UPDATE products SET stock = stock - ?
+                UPDATE products SET quantity = quantity - ?
                 WHERE id = ?
             """, (item['quantity'], item['id']))
 

@@ -41,10 +41,17 @@
 <!-- ✅ PAYMENT SECTION -->
 <h3>Payment</h3>
 
-<input type="number" id="discount" placeholder="Discount" value="0">
-<input type="number" id="paid" placeholder="Paid Amount" value="0">
+<div>
+  <label for="discount">Discount</label>
+  <input type="number" id="discount" name="discount" placeholder="Enter discount" value="">
+</div>
 
-<button onclick="submitSale()">Sell</button>
+<div>
+  <label for="paid_amount">Paid Amount</label>
+  <input type="number" id="paid_amount" name="paid_amount" placeholder="Enter amount paid" value="">
+</div>
+
+<button type="button" onclick="submitSale()">Sell</button>
 
 <!-- ✅ CUSTOMER DATA FROM BACKEND -->
 <script type="application/json" id="customer-data">
@@ -137,13 +144,15 @@ function removeItem(index) {
 }
 
 /* =========================
-   SUBMIT SALE
+   SUBMIT SALE (FIXED)
 ========================= */
 function submitSale() {
-    const phone = document.getElementById('phone').value;
-    const name = document.getElementById('name').value;
+    const phone = document.getElementById('phone').value.trim();
+    const name = document.getElementById('name').value.trim();
     const discount = parseFloat(document.getElementById('discount').value) || 0;
-    const paid = parseFloat(document.getElementById('paid').value) || 0;
+
+    // ✅ FIXED ID HERE
+    const paid = parseFloat(document.getElementById('paid_amount').value) || 0;
 
     if (!phone) {
         alert("Phone number required");
@@ -157,10 +166,12 @@ function submitSale() {
 
     fetch('/sales', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
             phone: phone,
-            name: name,
+            name: name || "Walk-in Customer",
             cart: cart,
             discount: discount,
             paid_amount: paid
@@ -168,8 +179,12 @@ function submitSale() {
     })
     .then(res => res.json())
     .then(data => {
-        alert("Sale Completed ✅");
-        location.reload();
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert("Sale Completed ✅");
+            location.reload();
+        }
     })
     .catch(err => {
         console.error(err);
