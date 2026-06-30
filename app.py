@@ -195,8 +195,17 @@ def sales():
         products = cursor.fetchall()
 
         cursor.execute("SELECT * FROM customers")
-        customers = cursor.fetchall()
+        rows = cursor.fetchall()
 
+        customers = [
+            {
+                "id": r[0],
+                "name": r[1],
+                "phone": r[2],
+                "due_amount": r[4]
+            }
+            for r in rows
+        ]
         conn.close()
 
         return render_template('sales.html', products=products, customers=customers)
@@ -226,16 +235,21 @@ def sales():
             )
             customer_id = cursor.lastrowid
 
-        # ✅ total
+        # get old due first
+        cursor.execute("SELECT due_amount FROM customers WHERE id = ?", (customer_id,))
+        old_due = cursor.fetchone()[0]
+
         total = sum(item['price'] * item['quantity'] for item in cart)
         final_amount = total - discount
-        due = final_amount - paid_amount
+
+        # ✅ NEW LOGIC
+        new_due = old_due + final_amount - paid_amount
 
         # ✅ insert sale
         cursor.execute("""
             INSERT INTO sales (customer_id, total_amount, discount, final_amount, paid_amount, due_added)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (customer_id, total, discount, final_amount, paid_amount, due))
+        """, (customer_id, total, discount, final_amount, paid_amount, new_due))
 
         sale_id = cursor.lastrowid
 
@@ -252,11 +266,10 @@ def sales():
             """, (item['quantity'], item['id']))
 
         # ✅ update due
-        if due > 0:
-            cursor.execute("""
-                UPDATE customers SET due_amount = due_amount + ?
-                WHERE id = ?
-            """, (due, customer_id))
+        cursor.execute("""
+            UPDATE customers SET due_amount = ?
+            WHERE id = ?
+        """, (new_due, customer_id))
 
         conn.commit()
         conn.close()

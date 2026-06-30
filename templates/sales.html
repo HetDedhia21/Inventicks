@@ -47,11 +47,11 @@
 </div>
 
 <div>
-  <label for="paid_amount">Paid Amount</label>
-  <input type="number" id="paid_amount" name="paid_amount" placeholder="Enter amount paid" value="">
+  <label for="paid">Paid Amount</label>
+  <input type="number" id="paid" name="paid_amount" placeholder="Enter amount paid" value="">
 </div>
 
-<button type="button" onclick="submitSale()">Sell</button>
+<button id = "sellBtn" type="button" onclick="submitSale()">Sell</button>
 
 <!-- ✅ CUSTOMER DATA FROM BACKEND -->
 <script type="application/json" id="customer-data">
@@ -117,6 +117,17 @@ function addToCart() {
     renderCart();
 }
 
+function updateQty(productId, newQty) {
+  cart = cart.map(item => {
+    if (item.id === productId) {
+      return { ...item, quantity: newQty };
+    }
+    return item;
+  });
+
+  renderCart();
+}
+
 function renderCart() {
     const cartDiv = document.getElementById('cart');
     cartDiv.innerHTML = '';
@@ -147,48 +158,50 @@ function removeItem(index) {
    SUBMIT SALE (FIXED)
 ========================= */
 function submitSale() {
-    const phone = document.getElementById('phone').value.trim();
-    const name = document.getElementById('name').value.trim();
-    const discount = parseFloat(document.getElementById('discount').value) || 0;
+    const btn = document.getElementById('sellBtn');
 
-    // ✅ FIXED ID HERE
-    const paid = parseFloat(document.getElementById('paid_amount').value) || 0;
+    // 🚫 Prevent double click
+    if (btn.disabled) return;
 
-    if (!phone) {
-        alert("Phone number required");
+    btn.disabled = true;
+    btn.innerText = "Processing...";
+
+    const phoneEl = document.getElementById('phone');
+    const nameEl = document.getElementById('name');
+    const paidEl = document.getElementById('paid');
+    const discountEl = document.getElementById('discount');
+
+    if (!phoneEl || !nameEl || !paidEl || !discountEl) {
+        alert("Missing fields!");
         return;
     }
 
-    if (cart.length === 0) {
-        alert("Cart is empty");
-        return;
-    }
+    const data = {
+        phone: phoneEl.value,
+        name: nameEl.value,
+        cart: cart,
+        discount: discountEl.value,
+        paid_amount: paidEl.value
+    };
 
     fetch('/sales', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            phone: phone,
-            name: name || "Walk-in Customer",
-            cart: cart,
-            discount: discount,
-            paid_amount: paid
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
     })
     .then(res => res.json())
-    .then(data => {
-        if (data.error) {
-            alert(data.error);
-        } else {
-            alert("Sale Completed ✅");
-            location.reload();
-        }
+    .then(response => {
+        alert("Sale completed!");
+
+        location.reload();
     })
     .catch(err => {
         console.error(err);
         alert("Error processing sale");
+
+        // ✅ re-enable on error too
+        btn.disabled = false;
+        btn.innerText = "Sell";
     });
 }
 </script>
