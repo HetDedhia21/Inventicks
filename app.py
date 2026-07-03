@@ -286,20 +286,35 @@ def dashboard():
     total_products = cursor.fetchone()[0]
 
     # Low stock (example: quantity < 5)
-    cursor.execute("SELECT COUNT(*) FROM products WHERE quantity < 5")
-    low_stock = cursor.fetchone()[0]
+    cursor.execute("SELECT name, quantity FROM products WHERE quantity < 5 LIMIT 5")
+    low_stock_items = cursor.fetchall()
 
-    # Total sales revenue
-    cursor.execute("SELECT SUM(total_price) FROM sales")
-    total_sales = cursor.fetchone()[0]
+   # Total revenue
+    cursor.execute("SELECT SUM(final_amount) FROM sales")
+    total_revenue = cursor.fetchone()[0] or 0
+
+    # Total sales count
+    cursor.execute("SELECT COUNT(*) FROM sales")
+    total_sales_count = cursor.fetchone()[0]
+
+    # Total customers
+    cursor.execute("SELECT COUNT(*) FROM customers")
+    total_customers = cursor.fetchone()[0]
+
+    # Recent Sales
+    cursor.execute("SELECT id, final_amount, date FROM sales ORDER BY date DESC LIMIT 5")
+    recent_sales = cursor.fetchall()
 
     conn.close()
 
     return render_template(
         'dashboard.html',
         total_products=total_products,
-        low_stock=low_stock,
-        total_sales=total_sales or 0
+        low_stock_items=low_stock_items,
+        total_revenue=total_revenue,
+        total_sales_count=total_sales_count,
+        total_customers=total_customers,
+        recent_sales=recent_sales
     )
 
 if __name__ == '__main__':

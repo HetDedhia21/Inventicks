@@ -7,6 +7,7 @@
 
 <body>
 
+<!-- Navbar -->
 <div class="navbar">
     <h2>Inventicks</h2>
     <div class="nav-links">
@@ -19,19 +20,71 @@
 
 <h1>📊 Dashboard</h1>
 
-<div class="card">
-    <h3>Total Products</h3>
-    <p>{{ total_products }}</p>
+<!-- ===== TOP CARDS ===== -->
+<div class="dashboard-cards">
+
+    <div class="card">
+        <h3>Total Products</h3>
+        <p>{{ total_products }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Low Stock Items</h3>
+
+        {% if low_stock_items %}
+            {% for item in low_stock_items %}
+                <p>{{ item[0] }} ({{ item[1] }})</p>
+            {% endfor %}
+        {% else %}
+            <p>No low stock</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>Total Revenue</h3>
+        <p>₹ {{ total_revenue }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Total Sales</h3>
+        <p>{{ total_sales_count }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Total Customers</h3>
+        <p>{{ total_customers }}</p>
+    </div>
+
 </div>
 
-<div class="card">
-    <h3>Low Stock Alerts</h3>
-    <p>{{ low_stock }}</p>
-</div>
+<!-- ===== LOWER SECTION ===== -->
+<div class="dashboard-sections">
 
-<div class="card">
-    <h3>Total Sales</h3>
-    <p>₹ {{ total_sales }}</p>
+    <!-- Recent Sales -->
+    <div class="section">
+        <div class="section-header">
+            <h3>🧾 Recent Sales</h3>
+            <a href="#">View More →</a>
+        </div>
+
+        <table>
+            <tr>
+                <th>Sale ID</th>
+                <th>Amount</th>
+                <th>Date</th>
+            </tr>
+
+            {% for sale in recent_sales %}
+            <tr>
+                <td>{{ sale[0] }}</td>
+                <td>₹ {{ sale[1] }}</td>
+                <td>{{ sale[2] }}</td>
+            </tr>
+            {% endfor %}
+
+        </table>
+    </div>
+
 </div>
 
 </body>
