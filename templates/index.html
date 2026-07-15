@@ -1,39 +1,25 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Inventicks</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-
-<body>
-
-<div class="navbar">
-    <h2>Inventicks</h2>
-    <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/inventory">Inventory</a>
-        <a href="/sales">Sales</a>
-        <a href="/dashboard">Dashboard</a>
+{% extends "base.html" %}
+{% block title %}Inventicks{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Welcome to {{ settings['business_name'] if settings else 'Inventicks' }}</h1>
+        <p class="subtitle">{{ settings['business_type'] if settings else 'General Store' }} &middot; inventory, sales and insights in one place</p>
     </div>
 </div>
 
-<div class="container">
-
-<h1>📦 Welcome to Inventicks</h1>
-
-<p style="text-align:center;">
-    Manage your inventory easily 🚀
-</p>
-
-<br>
-
-<div style="text-align:center;">
-    <a href="/inventory"><button>Inventory</button></a>
-    <a href="/sales"><button>Sales</button></a>
-    <a href="/dashboard"><button>Dashboard</button></a>
+<div class="metrics-grid">
+    <a href="/inventory" class="metric-card" style="display:block;">
+        <p class="label">Inventory</p>
+        <p class="value" style="font-size:16px;">Manage products &amp; stock</p>
+    </a>
+    <a href="/sales" class="metric-card" style="display:block;">
+        <p class="label">Sales</p>
+        <p class="value" style="font-size:16px;">Record a new sale</p>
+    </a>
+    <a href="/dashboard" class="metric-card" style="display:block;">
+        <p class="label">Dashboard</p>
+        <p class="value" style="font-size:16px;">View business insights</p>
+    </a>
 </div>
-
-</div>
-
-</body>
-</html>
+{% endblock %}

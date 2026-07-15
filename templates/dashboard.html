@@ -1,91 +1,122 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dashboard - Inventicks</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+{% extends "base.html" %}
+{% block title %}Dashboard - Inventicks{% endblock %}
+{% block content %}
 
-<body>
-
-<!-- Navbar -->
-<div class="navbar">
-    <h2>Inventicks</h2>
-    <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/inventory">Inventory</a>
-        <a href="/sales">Sales</a>
-        <a href="/dashboard">Dashboard</a>
+<div class="page-header">
+    <div>
+        <h1>Dashboard</h1>
+        <p class="subtitle">{{ settings['business_name'] if settings else 'Business' }} overview</p>
     </div>
 </div>
 
-<h1>📊 Dashboard</h1>
-
-<!-- ===== TOP CARDS ===== -->
-<div class="dashboard-cards">
-
-    <div class="card">
-        <h3>Total Products</h3>
-        <p>{{ total_products }}</p>
+<div class="metrics-grid">
+    <div class="metric-card">
+        <p class="label">Total revenue</p>
+        <p class="value">{{ settings['currency_symbol'] if settings else '₹' }}{{ total_revenue }}</p>
     </div>
-
-    <div class="card">
-        <h3>Low Stock Items</h3>
-
-        {% if low_stock_items %}
-            {% for item in low_stock_items %}
-                <p>{{ item[0] }} ({{ item[1] }})</p>
-            {% endfor %}
-        {% else %}
-            <p>No low stock</p>
-        {% endif %}
+    <div class="metric-card">
+        <p class="label">Total sales</p>
+        <p class="value">{{ total_sales_count }}</p>
     </div>
-
-    <div class="card">
-        <h3>Total Revenue</h3>
-        <p>₹ {{ total_revenue }}</p>
+    <div class="metric-card">
+        <p class="label">Products</p>
+        <p class="value">{{ total_products }}</p>
     </div>
-
-    <div class="card">
-        <h3>Total Sales</h3>
-        <p>{{ total_sales_count }}</p>
+    <div class="metric-card">
+        <p class="label">Customers</p>
+        <p class="value">{{ total_customers }}</p>
     </div>
-
-    <div class="card">
-        <h3>Total Customers</h3>
-        <p>{{ total_customers }}</p>
+    <div class="metric-card alert">
+        <p class="label">Low stock items</p>
+        <p class="value">{{ low_stock_items|length }}</p>
     </div>
-
 </div>
 
-<!-- ===== LOWER SECTION ===== -->
-<div class="dashboard-sections">
+<div class="panel">
+    <h2>Sales trend (last 7 days)</h2>
+    <canvas id="salesTrendChart" height="80"></canvas>
+</div>
 
-    <!-- Recent Sales -->
-    <div class="section">
-        <div class="section-header">
-            <h3>🧾 Recent Sales</h3>
-            <a href="#">View More →</a>
-        </div>
-
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+    <div class="panel">
+        <h2>Top selling products</h2>
         <table>
+            <tr><th>Product</th><th>Units sold</th></tr>
+            {% for item in top_products %}
             <tr>
-                <th>Sale ID</th>
-                <th>Amount</th>
-                <th>Date</th>
+                <td>{{ item[0] }}</td>
+                <td>{{ item[1] }}</td>
             </tr>
-
-            {% for sale in recent_sales %}
-            <tr>
-                <td>{{ sale[0] }}</td>
-                <td>₹ {{ sale[1] }}</td>
-                <td>{{ sale[2] }}</td>
-            </tr>
+            {% else %}
+            <tr><td colspan="2">No sales recorded yet</td></tr>
             {% endfor %}
-
         </table>
     </div>
 
+    <div class="panel">
+        <h2>Low stock alerts</h2>
+        <table>
+            <tr><th>Product</th><th>Remaining</th></tr>
+            {% for item in low_stock_items %}
+            <tr>
+                <td>{{ item[0] }}</td>
+                <td><span class="badge badge-low">{{ item[1] }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="2">All stock levels are healthy</td></tr>
+            {% endfor %}
+        </table>
+    </div>
 </div>
 
-</body>
-</html>
+<div class="panel">
+    <h2>Recent sales</h2>
+    <table>
+        <tr>
+            <th>Sale ID</th>
+            <th>Amount</th>
+            <th>Date</th>
+        </tr>
+        {% for sale in recent_sales %}
+        <tr>
+            <td>#{{ sale[0] }}</td>
+            <td>{{ settings['currency_symbol'] if settings else '₹' }}{{ sale[1] }}</td>
+            <td>{{ sale[2] }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">No sales yet</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>
+const trendLabels = {{ trend_labels | tojson }};
+const trendData = {{ trend_data | tojson }};
+
+new Chart(document.getElementById('salesTrendChart'), {
+    type: 'line',
+    data: {
+        labels: trendLabels,
+        datasets: [{
+            label: 'Revenue',
+            data: trendData,
+            borderColor: '#C97D2E',
+            backgroundColor: 'rgba(201,125,46,0.12)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3
+        }]
+    },
+    options: {
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true }
+        }
+    }
+});
+</script>
+{% endblock %}

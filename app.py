@@ -14,9 +14,50 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+BUSINESS_TYPE_OPTIONS = [
+    "General Store", "Grocery / Kirana", "Stationery", "Electronics",
+    "Pharmacy", "Clothing / Apparel", "Hardware", "Other"
+]
+
+def get_settings():
+    with get_db_connection() as conn:
+        row = conn.execute("SELECT * FROM settings WHERE id = 1").fetchone()
+    return dict(row) if row else {
+        "business_name": "My Business",
+        "business_type": "General Store",
+        "low_stock_threshold": 5,
+        "currency_symbol": "₹"
+    }
+
+@app.context_processor
+def inject_settings():
+    return {"settings": get_settings()}
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', active_page='home')
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings_page():
+    with get_db_connection() as conn:
+        if request.method == 'POST':
+            business_name = request.form['business_name']
+            business_type = request.form['business_type']
+            low_stock_threshold = request.form.get('low_stock_threshold', 5)
+            currency_symbol = request.form.get('currency_symbol', '₹')
+
+            conn.execute("""
+                UPDATE settings
+                SET business_name = ?, business_type = ?, low_stock_threshold = ?, currency_symbol = ?
+                WHERE id = 1
+            """, (business_name, business_type, low_stock_threshold, currency_symbol))
+            conn.commit()
+
+            flash("Settings updated!")
+            return redirect('/settings')
+
+    return render_template('settings.html', active_page='settings',
+                            business_type_options=BUSINESS_TYPE_OPTIONS)
 
 @app.route('/inventory', methods=['GET', 'POST'])
 def inventory():
@@ -28,10 +69,12 @@ def inventory():
             name = request.form['name']
             price = request.form['price']
             quantity = request.form['quantity']
+            category = request.form.get('category', '')
+            unit = request.form.get('unit', 'pcs') or 'pcs'
 
             cursor.execute(
-                "INSERT INTO products (name, price, quantity) VALUES (?, ?, ?)",
-                (name, price, quantity)
+                "INSERT INTO products (name, price, quantity, category, unit) VALUES (?, ?, ?, ?, ?)",
+                (name, price, quantity, category, unit)
             )
             conn.commit()
 
@@ -56,7 +99,7 @@ def inventory():
 
         products = cursor.execute(query, params).fetchall()
 
-    return render_template('inventory.html', products=products)
+    return render_template('inventory.html', products=products, active_page='inventory')
 
 @app.route('/delete/<int:id>')
 def delete_product(id):
@@ -80,15 +123,19 @@ def edit_product(id):
         name = request.form['name']
         price = request.form['price']
         quantity = request.form['quantity']
+        category = request.form.get('category', '')
+        unit = request.form.get('unit', 'pcs') or 'pcs'
 
         cursor.execute("""
             UPDATE products
             SET name = ?, 
                 price = ?, 
                 quantity = ?, 
+                category = ?,
+                unit = ?,
                 updated_at = datetime('now','localtime')
             WHERE id = ?
-        """, (name, price, quantity, id))
+        """, (name, price, quantity, category, unit, id))
 
         flash("Product updated successfully!")
 
@@ -101,7 +148,7 @@ def edit_product(id):
     ).fetchone()
     conn.close()
 
-    return render_template('edit_product.html', product=product)
+    return render_template('edit_product.html', product=product, active_page='inventory')
 
 @app.route('/upload_csv', methods=['POST'])
 def upload_csv():
@@ -208,7 +255,7 @@ def sales():
         ]
         conn.close()
 
-        return render_template('sales.html', products=products, customers=customers)
+        return render_template('sales.html', products=products, customers=customers, active_page='sales')
 
     elif request.method == 'POST':
         data = request.get_json()
@@ -281,15 +328,21 @@ def dashboard():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
 
+    biz_settings = get_settings()
+    low_stock_threshold = biz_settings.get('low_stock_threshold', 5)
+
     # Total products
     cursor.execute("SELECT COUNT(*) FROM products")
     total_products = cursor.fetchone()[0]
 
-    # Low stock (example: quantity < 5)
-    cursor.execute("SELECT name, quantity FROM products WHERE quantity < 5 LIMIT 5")
+    # Low stock, threshold driven by settings (works for any business type)
+    cursor.execute(
+        "SELECT name, quantity FROM products WHERE quantity < ? ORDER BY quantity ASC LIMIT 5",
+        (low_stock_threshold,)
+    )
     low_stock_items = cursor.fetchall()
 
-   # Total revenue
+    # Total revenue
     cursor.execute("SELECT SUM(final_amount) FROM sales")
     total_revenue = cursor.fetchone()[0] or 0
 
@@ -305,16 +358,50 @@ def dashboard():
     cursor.execute("SELECT id, final_amount, date FROM sales ORDER BY date DESC LIMIT 5")
     recent_sales = cursor.fetchall()
 
+    # Top selling products by units sold — works off transactional data alone,
+    # so it doesn't depend on business type
+    cursor.execute("""
+        SELECT p.name, SUM(si.quantity) as units_sold
+        FROM sale_items si
+        JOIN products p ON p.id = si.product_id
+        GROUP BY si.product_id
+        ORDER BY units_sold DESC
+        LIMIT 5
+    """)
+    top_products = cursor.fetchall()
+
+    # Revenue trend for the last 7 days
+    cursor.execute("""
+        SELECT date(date) as d, SUM(final_amount)
+        FROM sales
+        WHERE date >= date('now', '-6 days')
+        GROUP BY d
+        ORDER BY d ASC
+    """)
+    trend_rows = dict(cursor.fetchall())
+
+    trend_labels = []
+    trend_data = []
+    for i in range(6, -1, -1):
+        cursor.execute("SELECT date('now', ?)", (f'-{i} days',))
+        day = cursor.fetchone()[0]
+        trend_labels.append(datetime.strptime(day, '%Y-%m-%d').strftime('%b %d'))
+        trend_data.append(round(trend_rows.get(day, 0) or 0, 2))
+
     conn.close()
 
     return render_template(
         'dashboard.html',
+        active_page='dashboard',
         total_products=total_products,
         low_stock_items=low_stock_items,
         total_revenue=total_revenue,
         total_sales_count=total_sales_count,
         total_customers=total_customers,
-        recent_sales=recent_sales
+        recent_sales=recent_sales,
+        top_products=top_products,
+        trend_labels=trend_labels,
+        trend_data=trend_data
     )
 
 if __name__ == '__main__':

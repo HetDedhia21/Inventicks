@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Inventicks{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+<div class="app-shell">
+    <div class="sidebar">
+        <div class="brand">
+            Inventicks
+            <span>{{ settings['business_name'] if settings else 'My Business' }}</span>
+        </div>
+        <div class="nav-links">
+            <a href="/dashboard" class="{{ 'active' if active_page == 'dashboard' else '' }}">Dashboard</a>
+            <a href="/inventory" class="{{ 'active' if active_page == 'inventory' else '' }}">Inventory</a>
+            <a href="/sales" class="{{ 'active' if active_page == 'sales' else '' }}">Sales</a>
+            <a href="/settings" class="{{ 'active' if active_page == 'settings' else '' }}">Settings</a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul class="flashes">
+              {% for message in messages %}
+                <li>{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

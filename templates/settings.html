@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Settings - Inventicks{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1>Business settings</h1>
+</div>
+
+<div class="panel">
+    <h2>Configure your business</h2>
+    <form method="POST" style="border:none;padding:0;margin:0;">
+        <label>Business name</label>
+        <input type="text" name="business_name" value="{{ settings['business_name'] }}" required>
+
+        <label>Business type</label>
+        <select name="business_type">
+            {% for option in business_type_options %}
+            <option value="{{ option }}" {{ 'selected' if settings['business_type'] == option else '' }}>{{ option }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Low stock threshold</label>
+        <input type="number" name="low_stock_threshold" value="{{ settings['low_stock_threshold'] }}" min="1">
+
+        <label>Currency symbol</label>
+        <input type="text" name="currency_symbol" value="{{ settings['currency_symbol'] }}" maxlength="3" style="width:60px;">
+
+        <br><br>
+        <button type="submit">Save settings</button>
+    </form>
+</div>
+
+<div class="panel">
+    <h2>About</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin:0;">
+        Inventicks works for any type of business — the product fields (category, unit) and low-stock
+        threshold apply the same way whether you sell groceries, stationery, electronics, or anything else.
+    </p>
+</div>
+
+{% endblock %}
