@@ -92,7 +92,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="{{ url_for("static", filename="chart.umd.min.js") }}"></script>
 <script>
 const trendLabels = {{ trend_labels | tojson }};
 const trendData = {{ trend_data | tojson }};

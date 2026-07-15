@@ -1,0 +1,31 @@
+name,quantity,price,category,unit
+Basmati Rice 5kg,42,410,Grocery,pcs
+Sunflower Oil 1L,28,145,Grocery,pcs
+Toor Dal 1kg,35,120,Grocery,pcs
+Wheat Flour 5kg,50,225,Grocery,pcs
+Tea Powder 250g,60,95,Grocery,pcs
+Sugar 1kg,4,48,Grocery,kg
+Salt 1kg,3,20,Grocery,kg
+Milk Packet 500ml,0,28,Dairy,pcs
+Paneer 200g,2,60,Dairy,pcs
+Butter 100g,15,55,Dairy,pcs
+Notebook 200pg,80,45,Stationery,pcs
+Ball Pen Blue,120,10,Stationery,pcs
+Gel Pen Set,25,85,Stationery,box
+Geometry Box,18,95,Stationery,pcs
+A4 Paper Ream,3,320,Stationery,pcs
+Stapler,12,60,Stationery,pcs
+Sketch Pens 12pc,0,75,Stationery,box
+USB-C Cable 1m,22,199,Electronics,pcs
+Wired Earphones,14,299,Electronics,pcs
+Power Bank 10000mAh,6,899,Electronics,pcs
+Bluetooth Speaker,2,1499,Electronics,pcs
+Mobile Charger 20W,0,499,Electronics,pcs
+LED Bulb 9W,45,90,Electronics,pcs
+Extension Board,9,349,Electronics,pcs
+Cotton T-Shirt,30,399,Apparel,pcs
+Formal Shirt,17,699,Apparel,pcs
+Handkerchief Pack,5,120,Apparel,box
+Bath Soap,55,35,Personal Care,pcs
+Toothpaste 100g,4,55,Personal Care,pcs
+Shampoo 200ml,19,175,Personal Care,pcs

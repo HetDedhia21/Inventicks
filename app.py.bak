@@ -168,53 +168,53 @@ def upload_csv():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    with open(filepath, encoding='utf-8-sig', newline='') as csvfile:
+    with open(filepath, newline='') as csvfile:
         reader = csv.reader(csvfile)
+        
+        header = next(reader)
 
-        raw_header = next(reader)
-        header = [h.strip().lower() for h in raw_header]
-
-        required = {'name', 'quantity', 'price'}
-        optional = {'category', 'unit'}
-
-        if not required.issubset(set(header)):
-            flash(f"Invalid CSV format! Required columns: name, quantity, price "
-                  f"(optionally + category, unit). Found: {', '.join(header)}")
+        # VALIDATE HEADER
+        expected_header = ['name', 'quantity', 'price']
+        if [h.strip().lower() for h in header] != expected_header:
+            flash("Invalid CSV format! Required: name, quantity, price")
             return redirect('/inventory')
 
-        col_index = {col: i for i, col in enumerate(header)}
-        has_category = 'category' in col_index
-        has_unit = 'unit' in col_index
-
-        max_rows = 100  # safety limit
-        count = 0
-
         for row in reader:
-            if count >= max_rows:
-                break
-            if len(row) < len(header):
-                continue
+            # VALIDATE ROW LENGTH
+            if len(row) != 3:
+                continue  # skip bad rows
 
-            name = row[col_index['name']].strip()
-            quantity = row[col_index['quantity']].strip()
-            price = row[col_index['price']].strip()
-            category = row[col_index['category']].strip() if has_category else ''
-            unit = row[col_index['unit']].strip() if has_unit else 'pcs'
-
-            if not name or not quantity or not price:
-                continue
+            name, quantity, price = row
 
             cursor.execute(
-                "INSERT INTO products (name, price, quantity, category, unit) VALUES (?, ?, ?, ?, ?)",
-                (name, price, quantity, category, unit or 'pcs')
+                "INSERT INTO products (name, price, quantity) VALUES (?, ?, ?)",
+                (name, price, quantity)
             )
 
-            count += 1
+        max_rows = 100  # safety limit
+    count = 0
+
+    for row in reader:
+        if count >= max_rows:
+            break
+
+        if len(row) != 3:
+            continue
+
+        name, quantity, price = row
+
+        cursor.execute(
+            "INSERT INTO products (name, price, quantity) VALUES (?, ?, ?)",
+            (name, price, quantity)
+        )
+
+        count += 1
 
     conn.commit()
     conn.close()
 
-    flash(f"Imported {count} products successfully!")
+    flash("CSV uploaded successfully!")
+    flash(f"{count} products uploaded successfully!")
     return redirect('/inventory')
 
 @app.route('/delete_all')
@@ -343,7 +343,7 @@ def dashboard():
     low_stock_items = cursor.fetchall()
 
     # Total revenue
-    cursor.execute("SELECT ROUND(SUM(final_amount), 2) FROM sales")
+    cursor.execute("SELECT SUM(final_amount) FROM sales")
     total_revenue = cursor.fetchone()[0] or 0
 
     # Total sales count
